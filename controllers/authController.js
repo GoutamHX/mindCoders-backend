@@ -75,36 +75,37 @@ export const login = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await Member.findOne({ email });
+
+    const user = await Member.findOne({ email }).select(
+      'email resetPasswordToken resetPasswordExpire'
+    );
 
     if (!user) {
-      return res.status(404).json({ message: 'There is no registered user with the specified email address.' });
+      return res.status(404).json({
+        message: 'There is no registered user with the specified email address.'
+      });
     }
-    // Get reset token
     const resetToken = user.getResetPasswordToken();
+    // Save token (only required fields)
     await user.save({ validateBeforeSave: false });
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
-    try {
-      const template = emailTemplates.resetPassword(resetUrl);
-      
-      await sendEmail({
-        email: user.email,
-        subject: template.subject,
-        html: template.html
-      });
-
-      res.status(200).json({ message: 'Email sent' });
-    } catch (error) {
+    res.status(200).json({ message: 'Email sent' });
+    const template = emailTemplates.resetPassword(resetUrl);
+    sendEmail({
+      email: user.email,
+      subject: template.subject,
+      html: template.html
+    }).catch(async () => {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
-
       await user.save({ validateBeforeSave: false });
+    });
 
-      return res.status(500).json({ message: 'Email could not be sent' });
-    }
   } catch (error) {
-    res.status(500).json({ message: 'Something went wrong', error: error.message });
+    res.status(500).json({
+      message: 'Something went wrong',
+      error: error.message
+    });
   }
 };
 
