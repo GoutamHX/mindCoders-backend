@@ -12,8 +12,13 @@ const sendEmail = async ({ email, subject, html }) => {
       hasPassword: !!process.env.EMAIL_PASS
     });
 
+    // Use direct IPv4 address to bypass IPv6 DNS resolution issues on Render
+    const smtpHost = process.env.EMAIL_HOST === 'smtp.gmail.com' 
+      ? '142.250.152.108' // Gmail SMTP IPv4 address
+      : process.env.EMAIL_HOST;
+
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
+      host: smtpHost,
       port: Number(process.env.EMAIL_PORT),
       secure: Number(process.env.EMAIL_PORT) === 465,
       auth: {
@@ -21,15 +26,17 @@ const sendEmail = async ({ email, subject, html }) => {
         pass: process.env.EMAIL_PASS,
       },
       tls: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        servername: 'smtp.gmail.com' // Required when using IP address
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      family: 4
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
+      logger: false,
+      debug: false
     });
 
-    console.log('Verifying SMTP connection...');
+    console.log('Connecting to SMTP server via IPv4:', smtpHost);
     await transporter.verify();
     console.log("SMTP server is ready");
 
