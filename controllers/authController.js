@@ -89,19 +89,40 @@ export const forgotPassword = async (req, res) => {
     // Save token (only required fields)
     await user.save({ validateBeforeSave: false });
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-    res.status(200).json({ message: 'Email sent' });
+    
     const template = emailTemplates.resetPassword(resetUrl);
-    sendEmail({
-      email: user.email,
-      subject: template.subject,
-      html: template.html
-    }).catch(async () => {
+    
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: template.subject,
+        html: template.html
+      });
+      
+      console.log('Password reset email sent successfully to:', user.email);
+      res.status(200).json({ message: 'Email sent successfully' });
+      
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+      console.error('Email error details:', {
+        code: emailError.code,
+        command: emailError.command,
+        response: emailError.response,
+        responseCode: emailError.responseCode
+      });
+      
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
-    });
+      
+      return res.status(500).json({
+        message: 'Failed to send email. Please try again later.',
+        error: emailError.message
+      });
+    }
 
   } catch (error) {
+    console.error('Forgot password error:', error);
     res.status(500).json({
       message: 'Something went wrong',
       error: error.message

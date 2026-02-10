@@ -4,15 +4,31 @@ dotenv.config();
 
 const sendEmail = async ({ email, subject, html }) => {
   try {
+    console.log('Attempting to send email to:', email);
+    console.log('SMTP Config:', {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      user: process.env.EMAIL_USER,
+      hasPassword: !!process.env.EMAIL_PASS
+    });
+
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: Number(process.env.EMAIL_PORT),
-      secure: Number(process.env.EMAIL_PORT) === 465, // true for 465, false for 587
+      secure: Number(process.env.EMAIL_PORT) === 465,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000
     });
+
+    console.log('Verifying SMTP connection...');
     await transporter.verify();
     console.log("SMTP server is ready");
 
@@ -26,10 +42,17 @@ const sendEmail = async ({ email, subject, html }) => {
     console.log("Email sent successfully");
     console.log("To:", email);
     console.log("Message ID:", info.messageId);
+    console.log("Response:", info.response);
 
     return true;
   } catch (error) {
     console.error("Email sending failed:", error);
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response
+    });
     throw error; 
   }
 };
