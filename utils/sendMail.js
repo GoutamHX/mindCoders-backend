@@ -2,41 +2,39 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
 
-const sendEmail = async (options) => {
+const sendEmail = async ({ email, subject, html }) => {
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: Number(process.env.EMAIL_PORT),
-      secure: Number(process.env.EMAIL_PORT) === 465,
+      secure: Number(process.env.EMAIL_PORT) === 465, // true for 465, false for 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
+    await transporter.verify();
+    console.log("SMTP server is ready");
 
-    const mailOptions = {
-      from: `MindCoders Support <${process.env.EMAIL_USER}>`,
-      to: options.email,
-      subject: options.subject,
-      html: options.html || options.message,
-    };
+    const info = await transporter.sendMail({
+      from: `"MindCoders Support" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject,
+      html,
+    });
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    const cleanId = (info.messageId || "").replace(/[<>]/g, "");
     console.log("Email sent successfully");
-    console.log("  To:", options.email);
-    console.log("  Subject:", options.subject);
-    console.log("  Message ID:", cleanId);
-
-    if (info.response) console.log("  Response:", info.response);
+    console.log("To:", email);
+    console.log("Message ID:", info.messageId);
 
     return true;
   } catch (error) {
-    console.error("Email sending error:", error);
-    return false;
+    console.error("Email sending failed:", error);
+    throw error; 
   }
 };
+
+
 
 const emailTemplates = {
   resetPassword: (resetUrl) => ({
