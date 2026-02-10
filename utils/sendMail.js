@@ -23,9 +23,10 @@ const sendEmail = async ({ email, subject, html }) => {
       tls: {
         rejectUnauthorized: false
       },
-      connectionTimeout: 10000, // 10 seconds
+      connectionTimeout: 10000,
       greetingTimeout: 10000,
-      socketTimeout: 10000
+      socketTimeout: 10000,
+      family: 4
     });
 
     console.log('Verifying SMTP connection...');
